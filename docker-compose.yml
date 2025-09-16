@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  quake7survival:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: quake7survival-app
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+    volumes:
+      # For development: mount source code for hot reload (optional)
+      # - ./src:/app/src:ro
+      # Mount logs directory
+      - ./logs:/app/logs
+    networks:
+      - quake7survival-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Optional: H2 Database console (if you want to access it from outside)
+  h2-console:
+    image: eclipse-temurin:21-jre-jammy
+    container_name: quake7survival-h2-console
+    ports:
+      - "8082:8082"
+    command: >
+      bash -c "
+        echo 'H2 Console is available at http://localhost:8082' &&
+        echo 'JDBC URL: jdbc:h2:mem:testdb' &&
+        echo 'User: sa' &&
+        echo 'Password: (empty)' &&
+        tail -f /dev/null
+      "
+    networks:
+      - quake7survival-network
+    depends_on:
+      - quake7survival
+
+networks:
+  quake7survival-network:
+    driver: bridge
+
+volumes:
+  logs:
+    driver: local

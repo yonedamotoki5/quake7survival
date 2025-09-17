@@ -48,7 +48,7 @@ services:
     image: amazon/cloudwatch-agent:latest
     container_name: quake7survival-cloudwatch
     volumes:
-      - ./cw-config.json:/etc/cwagentconfig.json:ro
+      - ./cloudwatch/amazon-cloudwatch-agent.json:/etc/cwagentconfig.json:ro
       - ./logs:/app/logs:ro
     networks:
       - quake7survival-network

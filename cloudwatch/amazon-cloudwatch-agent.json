@@ -1,0 +1,19 @@
+{
+  "agent": {
+    "run_as_user": "app"
+  },
+  "logs": {
+    "logs_collected": {
+      "files": {
+        "collect_list": [
+          {
+            "file_path": "/app/logs/*.log",
+            "log_group_name": "/quake7survival/springboot",
+            "log_stream_name": "all",
+            "timezone": "UTC"
+          }
+        ]
+      }
+    }
+  }
+}

@@ -44,6 +44,22 @@ services:
     depends_on:
       - quake7survival
 
+  cloudwatch-agent:
+    image: amazon/cloudwatch-agent:latest
+    container_name: quake7survival-cloudwatch
+    volumes:
+      - ./cw-config.json:/etc/cwagentconfig.json:ro
+      - ./logs:/app/logs:ro
+    networks:
+      - quake7survival-network
+    restart: unless-stopped
+    depends_on:
+      - quake7survival
+    command: >
+      /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl
+      -a fetch-config -m ec2
+      -c file:/etc/cwagentconfig.json -s
+
 networks:
   quake7survival-network:
     driver: bridge

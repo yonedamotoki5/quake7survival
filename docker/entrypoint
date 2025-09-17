@@ -1,0 +1,13 @@
+#!/bin/sh
+set -e
+
+# CloudWatch Agentを起動する(rootでないと立ち上がらないので注意)
+nohup /opt/aws/amazon-cloudwatch-agent/bin/start-amazon-cloudwatch-agent > /dev/null 2> /dev/null &
+
+# workaround: ユーザ切り替え後に/dev/stderrと/dev/stdoutをappユーザから触れないのでパーミッションを変えておく
+# https://superuser.com/questions/1699317/permission-denied-on-dev-stderr-after-sudo
+chmod 777 /dev/stderr
+chmod 777 /dev/stdout
+
+# コマンドそのものはappユーザで実行する
+sudo -u app "$@"

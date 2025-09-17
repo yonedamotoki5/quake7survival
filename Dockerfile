@@ -1,46 +1,59 @@
-# Multi-stage build for Spring Boot application
+# ==============================
+# Builder stage (Spring Boot)
+# ==============================
 FROM eclipse-temurin:21-jdk-jammy AS builder
 
-# Set working directory
 WORKDIR /app
 
-# Copy Maven wrapper and pom.xml first for better layer caching
+# Maven wrapper と pom.xml だけ先にコピーして依存関係をキャッシュ
 COPY mvnw mvnw.cmd pom.xml ./
 COPY .mvn .mvn
 
-# Download dependencies (this layer will be cached if pom.xml doesn't change)
+# 依存関係をダウンロード（キャッシュ効率向上）
 RUN ./mvnw dependency:go-offline -B
 
-# Copy source code
+# ソースコードをコピー
 COPY src src
 
-# Build the application
+# ビルド
 RUN ./mvnw clean package -DskipTests
 
+# ==============================
 # Runtime stage
-FROM eclipse-temurin:21-jre-jammy
+# ==============================
+FROM debian:buster-slim
 
-# Create app user for security
-RUN groupadd -r appuser && useradd -r -g appuser appuser
-
-# Set working directory
+# 作業ディレクトリ
 WORKDIR /app
 
-# Copy the built jar from builder stage
-COPY --from=builder /app/target/quake7survival-*.jar app.jar
+# アプリ用ユーザ作成
+RUN groupadd -r appuser && useradd -r -g appuser appuser
 
-# Change ownership to app user
+# ビルド済み Jar をコピー
+COPY --from=builder /app/target/quake7survival-*.jar app.jar
 RUN chown appuser:appuser app.jar
 
-# Switch to non-root user
-USER appuser
+# ==============================
+# CloudWatch Agent
+# ==============================
+# 公式 CloudWatch Agent イメージからファイルをコピー
+COPY --from=amazon/cloudwatch-agent:latest /opt/aws/amazon-cloudwatch-agent /opt/aws/amazon-cloudwatch-agent
 
-# Expose port
+# CloudWatch 設定ファイルをコピー
+COPY cloudwatch/amazon-cloudwatch-agent.json /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json
+
+# ==============================
+# Entrypoint スクリプト
+# ==============================
+COPY --chmod=775 docker/entrypoint /usr/local/bin/entrypoint
+
+# 権限を調整して非 root ユーザに切り替え
+USER root
+
+# ポートとヘルスチェック
 EXPOSE 8080
-
-# Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=30s --retries=3 \
   CMD curl -f http://localhost:8080/actuator/health || exit 1
 
-# Run the application
-ENTRYPOINT ["java", "-jar", "app.jar"]
+# Entrypoint で CloudWatch Agent 起動 + アプリ実行
+ENTRYPOINT ["/usr/local/bin/entrypoint", "java", "-jar", "app.jar"]

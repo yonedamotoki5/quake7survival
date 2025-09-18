@@ -41,7 +41,8 @@ COPY --from=amazon/cloudwatch-agent:latest /opt/aws/amazon-cloudwatch-agent /opt
 
 # CloudWatch 設定ファイルをコピー
 COPY cloudwatch/amazon-cloudwatch-agent.json /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json
-
+COPY cloudwatch/cloudwatch-agent-common-config.toml /opt/aws/amazon-cloudwatch-agent/etc/common-config.toml
+COPY --chown=app:app cloudwatch/aws-config /home/app/.aws/config
 # ==============================
 # Entrypoint スクリプト
 # ==============================
